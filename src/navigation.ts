@@ -1,19 +1,42 @@
 export type RootStack = {
   Workspaces: undefined;
   Home: { slug: string };
-  Chat: { slug: string; channelId: number; title: string; parentId?: number };
+  Chat: {
+    slug: string;
+    channelId: number;
+    title: string;
+    parentId?: number;
+    channelType?: 'public' | 'private' | 'dm';
+    dmUser?: { id: number; name: string; avatar_url?: string | null; status_emoji?: string | null };
+  };
   Activity: { slug: string };
   Search: { slug: string };
   Browse: { slug: string };
   NewChannel: { slug: string };
+  NewMessage: { slug: string };
+  CreateChannel: { slug: string };
   Saved: { slug: string };
   Drafts: { slug: string };
   Scheduled: { slug: string };
   Threads: { slug: string };
   Files: { slug: string };
   Profile: undefined;
+  Preferences: undefined;
+  ColorMode: undefined;
+  Notifications: undefined;
   ChannelInfo: { slug: string; channelId: number; title: string };
   Huddle: { slug: string; channelId: number; title: string };
   Canvas: { slug: string; channelId: number; title: string };
   Forward: { slug: string; channelId: number; messageId: number };
+  ImageViewer: {
+    slug: string;
+    fileId: number;
+    fileUrl: string;
+    fileName: string;
+    userName: string;
+    userAvatar?: string;
+    timestamp: string;
+    sharedIn?: string;
+  };
+  ShareFile: { slug: string; fileId: number; fileName: string };
 };

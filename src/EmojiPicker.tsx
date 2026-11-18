@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import emojiData from 'unicode-emoji-json/data-by-emoji.json';
 import { fileSource } from './api';
-import { colors } from './ui';
+import { useTheme } from './ui';
+import { ThemeColors } from './theme';
 import { getExtras } from './workspaceData';
 
 interface Item {
@@ -30,6 +31,8 @@ export default function EmojiPicker({
   onClose: () => void;
   allowCustom?: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [term, setTerm] = useState('');
 
   const items = useMemo(() => {
@@ -75,12 +78,28 @@ export default function EmojiPicker({
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: { backgroundColor: 'rgba(0,0,0,0.4)', flex: 1, justifyContent: 'flex-end' },
-  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, height: '60%', padding: 12 },
-  search: { backgroundColor: colors.soft, borderRadius: 10, color: colors.text, fontSize: 16, marginBottom: 8, padding: 10 },
-  cell: { alignItems: 'center', flex: 1, paddingVertical: 6 },
-  emoji: { fontSize: 26 },
-  image: { height: 28, width: 28 },
-  empty: { color: colors.muted, padding: 20, textAlign: 'center' },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    backdrop: { backgroundColor: 'rgba(0,0,0,0.45)', flex: 1, justifyContent: 'flex-end' },
+    sheet: {
+      backgroundColor: colors.dark,
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
+      height: '60%',
+      padding: 12,
+    },
+    search: {
+      backgroundColor: colors.inputBg,
+      borderColor: colors.line,
+      borderRadius: 10,
+      borderWidth: 1,
+      color: colors.text,
+      fontSize: 16,
+      marginBottom: 8,
+      padding: 10,
+    },
+    cell: { alignItems: 'center', flex: 1, paddingVertical: 6 },
+    emoji: { fontSize: 26 },
+    image: { height: 28, width: 28 },
+    empty: { color: colors.muted, padding: 20, textAlign: 'center' },
+  });

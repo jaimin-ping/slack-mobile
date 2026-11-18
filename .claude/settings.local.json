@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm start)",
+      "Bash(npm install)",
+      "Bash(npx expo start)",
+      "Bash(npx expo start --tunnel)",
+      "Bash(npx expo start:*)",
+      "Bash(ipconfig:*)",
+      "Bash(findstr:*)",
+      "Bash(curl:*)",
+      "Bash(npm install:*)",
+      "Bash(netstat:*)",
+      "Bash(tasklist:*)",
+      "Bash(npx tsc:*)",
+      "Bash(TOKEN=\"7|xXRd9KX7GCMTJYMvQapS9qpt78AXZWkN6R311IlXb86bfa7f\")",
+      "Bash(SLUG=\"ping-dev-rii4ac\")",
+      "Bash(echo:*)",
+      "Bash(npx expo prebuild --platform android)",
+      "Bash(adb devices:*)",
+      "Bash(npx expo export:*)",
+      "Bash(npx eas:*)",
+      "Bash(timeout:*)",
+      "Bash(node -e:*)",
+      "Bash(php artisan tinker:*)",
+      "Bash(php artisan config:clear:*)",
+      "Bash(php artisan:*)",
+      "Bash(Select-Object -Last 50)",
+      "Bash(powershell:*)",
+      "Bash(npx expo run:android)",
+      "Bash(npx expo install:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "screen-recorder-calls"
+  ],
+  "disabledMcpjsonServers": [
+    "screen-recorder-calls"
+  ]
+}

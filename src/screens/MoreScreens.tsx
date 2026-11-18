@@ -1,15 +1,19 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
-import { useEffect, useState } from 'react';
+import Ionicons from '@react-native-vector-icons/ionicons';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { api, Channel, fileSource, getSession, Message, User } from '../api';
 import { RootStack } from '../navigation';
-import { Avatar, colors, RichText, time } from '../ui';
+import { Avatar, RichText, time, useTheme } from '../ui';
+import { ThemeColors } from '../theme';
 import { getExtras } from '../workspaceData';
 
 const errorText = (e: unknown) => (e as Error).message;
 
 function Button({ label, onPress, danger }: { label: string; onPress: () => void; danger?: boolean }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={[styles.button, danger && styles.dangerButton]}>
       <Text style={styles.buttonText}>{label}</Text>
@@ -28,6 +32,8 @@ interface BrowseItem {
 }
 
 export function BrowseScreen({ navigation, route }: NativeStackScreenProps<RootStack, 'Browse'>) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { slug } = route.params;
   const [items, setItems] = useState<BrowseItem[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +77,8 @@ export function BrowseScreen({ navigation, route }: NativeStackScreenProps<RootS
 }
 
 export function NewChannelScreen({ navigation, route }: NativeStackScreenProps<RootStack, 'NewChannel'>) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { slug } = route.params;
   const [name, setName] = useState('');
   const [isPrivate, setPrivate] = useState(false);
@@ -101,6 +109,8 @@ export function NewChannelScreen({ navigation, route }: NativeStackScreenProps<R
 }
 
 export function SavedScreen({ navigation, route }: NativeStackScreenProps<RootStack, 'Saved'>) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { slug } = route.params;
   const [items, setItems] = useState<(Message & { channel_label: string })[] | null>(null);
 
@@ -144,6 +154,8 @@ interface DraftItem {
 }
 
 export function DraftsScreen({ navigation, route }: NativeStackScreenProps<RootStack, 'Drafts'>) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { slug } = route.params;
   const [items, setItems] = useState<DraftItem[] | null>(null);
 
@@ -186,6 +198,8 @@ interface ScheduledItem {
 }
 
 export function ScheduledScreen({ route }: NativeStackScreenProps<RootStack, 'Scheduled'>) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { slug } = route.params;
   const [items, setItems] = useState<ScheduledItem[] | null>(null);
   const [reminders, setReminders] = useState<ReminderItem[]>([]);
@@ -241,6 +255,8 @@ export function ScheduledScreen({ route }: NativeStackScreenProps<RootStack, 'Sc
 }
 
 export function ThreadsScreen({ navigation, route }: NativeStackScreenProps<RootStack, 'Threads'>) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { slug } = route.params;
   const [items, setItems] = useState<(Message & { channel_label: string })[] | null>(null);
 
@@ -282,6 +298,8 @@ interface FileItem {
 }
 
 export function FilesScreen({ route }: NativeStackScreenProps<RootStack, 'Files'>) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { slug } = route.params;
   const [items, setItems] = useState<FileItem[] | null>(null);
 
@@ -296,7 +314,10 @@ export function FilesScreen({ route }: NativeStackScreenProps<RootStack, 'Files'
       ListEmptyComponent={items ? <Text style={styles.empty}>Files shared in your channels show up here.</Text> : undefined}
       renderItem={({ item }) => (
         <Pressable accessibilityRole="link" onPress={() => Linking.openURL(fileSource(item.url).uri)} style={styles.row}>
-          <Text style={styles.title}>📎 {item.name}</Text>
+          <View style={styles.fileRow}>
+            <Ionicons name="document-outline" size={17} color={colors.textSecondary} />
+            <Text style={styles.title}>{item.name}</Text>
+          </View>
           <Text style={styles.label}>{item.sender} · {item.channel_label}</Text>
         </Pressable>
       )}
@@ -308,6 +329,8 @@ export function FilesScreen({ route }: NativeStackScreenProps<RootStack, 'Files'
 const PAUSES: [number, string][] = [[30, '30 min'], [60, '1 hour'], [480, '8 hours'], [0, 'Resume']];
 
 export function ProfileScreen({ onSignOut }: { onSignOut: () => void }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const session = getSession();
   const [emoji, setEmoji] = useState('');
   const [text, setText] = useState('');
@@ -385,6 +408,8 @@ export function ProfileScreen({ onSignOut }: { onSignOut: () => void }) {
 }
 
 export function ChannelInfoScreen({ navigation, route }: NativeStackScreenProps<RootStack, 'ChannelInfo'>) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { slug, channelId, title } = route.params;
   const base = `/w/${slug}/c/${channelId}`;
   const [pins, setPins] = useState<Message[]>([]);
@@ -462,6 +487,8 @@ interface CanvasData {
 }
 
 export function CanvasScreen({ route }: NativeStackScreenProps<RootStack, 'Canvas'>) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { slug, channelId } = route.params;
   const url = `/w/${slug}/c/${channelId}/canvas`;
   const [canvas, setCanvas] = useState<CanvasData | null>(null);
@@ -505,6 +532,8 @@ export function CanvasScreen({ route }: NativeStackScreenProps<RootStack, 'Canva
 }
 
 export function ForwardScreen({ navigation, route }: NativeStackScreenProps<RootStack, 'Forward'>) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { slug, channelId, messageId } = route.params;
   const [channels, setChannels] = useState<Channel[]>([]);
   const [members, setMembers] = useState<User[]>([]);
@@ -547,29 +576,46 @@ export function ForwardScreen({ navigation, route }: NativeStackScreenProps<Root
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { backgroundColor: '#fff', flex: 1 },
-  padded: { gap: 10, padding: 16 },
-  row: { borderBottomColor: colors.line, borderBottomWidth: 1, padding: 14 },
-  rowLine: { alignItems: 'center', borderBottomColor: colors.line, borderBottomWidth: 1, flexDirection: 'row', gap: 10, padding: 14 },
-  grow: { flex: 1, minWidth: 0 },
-  label: { color: colors.muted, fontSize: 13 },
-  title: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  body: { color: colors.text, fontSize: 15 },
-  input: { borderColor: colors.line, borderRadius: 8, borderWidth: 1, color: colors.text, fontSize: 16, padding: 10 },
-  button: { alignItems: 'center', backgroundColor: colors.brand, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10 },
-  dangerButton: { backgroundColor: colors.danger },
-  buttonText: { color: '#fff', fontWeight: '700' },
-  switchRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  error: { color: colors.danger, padding: 8 },
-  empty: { color: colors.muted, padding: 24, textAlign: 'center' },
-  section: { color: colors.muted, fontSize: 13, fontWeight: '700', marginTop: 12 },
-  profileHead: { alignItems: 'center', flexDirection: 'row', gap: 12 },
-  statusRow: { flexDirection: 'row', gap: 8 },
-  emojiInput: { textAlign: 'center', width: 56 },
-  wrapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  note: { color: colors.brand, marginTop: 8 },
-  signOut: { marginTop: 24 },
-  pin: { borderLeftColor: colors.accent, borderLeftWidth: 3, paddingLeft: 10 },
-  canvas: { minHeight: 240, textAlignVertical: 'top' },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    screen: { backgroundColor: colors.dark, flex: 1 },
+    padded: { gap: 10, padding: 16 },
+    row: { borderBottomColor: colors.line, borderBottomWidth: 1, padding: 14 },
+    rowLine: {
+      alignItems: 'center',
+      borderBottomColor: colors.line,
+      borderBottomWidth: 1,
+      flexDirection: 'row',
+      gap: 10,
+      padding: 14,
+    },
+    grow: { flex: 1, minWidth: 0 },
+    label: { color: colors.textSecondary, fontSize: 13 },
+    title: { color: colors.text, fontSize: 16, fontWeight: '700' },
+    body: { color: colors.text, fontSize: 15 },
+    fileRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+    input: {
+      backgroundColor: colors.inputBg,
+      borderColor: colors.line,
+      borderRadius: 8,
+      borderWidth: 1,
+      color: colors.text,
+      fontSize: 16,
+      padding: 10,
+    },
+    button: { alignItems: 'center', backgroundColor: colors.brand, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10 },
+    dangerButton: { backgroundColor: colors.danger },
+    buttonText: { color: '#ffffff', fontWeight: '700' },
+    switchRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
+    error: { color: colors.danger, padding: 8 },
+    empty: { color: colors.muted, padding: 24, textAlign: 'center' },
+    section: { color: colors.textSecondary, fontSize: 13, fontWeight: '700', marginTop: 12 },
+    profileHead: { alignItems: 'center', flexDirection: 'row', gap: 12 },
+    statusRow: { flexDirection: 'row', gap: 8 },
+    emojiInput: { textAlign: 'center', width: 56 },
+    wrapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    note: { color: colors.accent, marginTop: 8 },
+    signOut: { marginTop: 24 },
+    pin: { borderLeftColor: colors.accent, borderLeftWidth: 3, paddingLeft: 10 },
+    canvas: { minHeight: 240, textAlignVertical: 'top' },
+  });

@@ -1,10 +1,12 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useEffect, useRef, useState } from 'react';
+import Ionicons from '@react-native-vector-icons/ionicons';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api, getSession } from '../api';
 import { RootStack } from '../navigation';
 import { joinPresence, leavePresence } from '../realtime';
-import { colors } from '../ui';
+import { useTheme } from '../ui';
+import { ThemeColors } from '../theme';
 import { createPeer, getMedia, huddleSupported, Peer, RemoteAudio, Stream, streamOf, Track, VideoView } from '../webrtc';
 
 interface Person {
@@ -31,6 +33,8 @@ const plain = (value: Peer) => (value?.toJSON ? value.toJSON() : value);
 
 /** The same signalling as the web huddle, so phones and browsers share one call. Leaving this screen leaves the huddle. */
 export default function HuddleScreen({ navigation, route }: NativeStackScreenProps<RootStack, 'Huddle'>) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { slug, channelId, title } = route.params;
   const me = getSession()?.user;
 
@@ -252,46 +256,76 @@ export default function HuddleScreen({ navigation, route }: NativeStackScreenPro
       ))}
 
       <View style={styles.controls}>
-        <Pressable accessibilityRole="button" onPress={toggleMute} style={styles.control}>
-          <Text style={styles.controlText}>{muted ? 'Unmute' : 'Mute'}</Text>
+        <Pressable
+          accessibilityLabel={muted ? 'Unmute' : 'Mute'}
+          accessibilityRole="button"
+          onPress={toggleMute}
+          style={[styles.control, muted && styles.controlOff]}
+        >
+          <Ionicons name={muted ? 'mic-off' : 'mic'} size={22} color="#ffffff" />
         </Pressable>
         <Pressable
+          accessibilityLabel={localStream ? 'Stop video' : 'Start video'}
           accessibilityRole="button"
           onPress={() => (localStream ? setTrack(null) : startCamera(facing))}
-          style={styles.control}
+          style={[styles.control, !localStream && styles.controlOff]}
         >
-          <Text style={styles.controlText}>{localStream ? 'Stop video' : 'Video'}</Text>
+          <Ionicons name={localStream ? 'videocam' : 'videocam-off'} size={22} color="#ffffff" />
         </Pressable>
         {localStream && (
           <Pressable
+            accessibilityLabel="Flip camera"
             accessibilityRole="button"
             onPress={() => startCamera(facing === 'user' ? 'environment' : 'user')}
             style={styles.control}
           >
-            <Text style={styles.controlText}>Flip</Text>
+            <Ionicons name="camera-reverse" size={22} color="#ffffff" />
           </Pressable>
         )}
-        <Pressable accessibilityRole="button" onPress={() => navigation.goBack()} style={[styles.control, styles.leave]}>
-          <Text style={styles.controlText}>Leave</Text>
+        <Pressable
+          accessibilityLabel="Leave huddle"
+          accessibilityRole="button"
+          onPress={() => navigation.goBack()}
+          style={[styles.control, styles.leave]}
+        >
+          <Ionicons name="call" size={22} color="#ffffff" />
         </Pressable>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.dark, flex: 1, padding: 16 },
-  title: { color: '#fff', fontSize: 20, fontWeight: '700' },
-  count: { color: '#cbd5e1', marginTop: 4 },
-  notice: { color: '#fff', fontSize: 16, lineHeight: 24, textAlign: 'center', marginTop: 40 },
-  error: { color: '#fecaca', marginTop: 8 },
-  stage: { flex: 1, marginVertical: 12 },
-  tiles: { gap: 8 },
-  tile: { backgroundColor: '#000', borderRadius: 10, height: 220, overflow: 'hidden' },
-  video: { height: '100%', width: '100%' },
-  tileName: { backgroundColor: 'rgba(0,0,0,0.6)', bottom: 6, color: '#fff', fontSize: 12, left: 6, paddingHorizontal: 6, position: 'absolute' },
-  controls: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
-  control: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10 },
-  controlText: { color: '#fff', fontWeight: '700' },
-  leave: { backgroundColor: '#be123c' },
-});
+// A huddle keeps a dark stage whatever the theme, the way a call screen does,
+// but its chrome still follows the chosen colours.
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    screen: { backgroundColor: colors.sidebar, flex: 1, padding: 16 },
+    title: { color: '#ffffff', fontSize: 20, fontWeight: '700' },
+    count: { color: 'rgba(255,255,255,0.7)', marginTop: 4 },
+    notice: { color: '#ffffff', fontSize: 16, lineHeight: 24, marginTop: 40, textAlign: 'center' },
+    error: { color: colors.danger, marginTop: 8 },
+    stage: { flex: 1, marginVertical: 12 },
+    tiles: { gap: 8 },
+    tile: { backgroundColor: '#000000', borderRadius: 10, height: 220, overflow: 'hidden' },
+    video: { height: '100%', width: '100%' },
+    tileName: {
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      bottom: 6,
+      color: '#ffffff',
+      fontSize: 12,
+      left: 6,
+      paddingHorizontal: 6,
+      position: 'absolute',
+    },
+    controls: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, justifyContent: 'center', paddingBottom: 8 },
+    control: {
+      alignItems: 'center',
+      backgroundColor: 'rgba(255,255,255,0.16)',
+      borderRadius: 26,
+      height: 52,
+      justifyContent: 'center',
+      width: 52,
+    },
+    controlOff: { backgroundColor: 'rgba(255,255,255,0.08)' },
+    leave: { backgroundColor: colors.danger },
+  });

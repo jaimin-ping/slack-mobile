@@ -8,7 +8,8 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pingchat.mobile"
+      "bundleIdentifier": "com.pingchat.mobile",
+      "bitcode": false
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +19,17 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.pingchat.mobile"
+      "package": "com.pingchat.mobile",
+      "permissions": [
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.CAMERA",
+        "android.permission.INTERNET",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WAKE_LOCK",
+        "android.permission.BLUETOOTH"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,8 +44,16 @@
           "cameraPermission": "Ping Chat uses the camera for video in huddles.",
           "microphonePermission": "Ping Chat uses the microphone for huddles."
         }
-      ]
+      ],
+      "@react-native-vector-icons/ionicons",
+      "expo-font"
     ],
-    "scheme": "pingchat"
+    "scheme": "pingchat",
+    "extra": {
+      "eas": {
+        "projectId": "3002213c-51f6-440d-8b12-4831b8c3b549"
+      }
+    },
+    "owner": "dixit4148"
   }
 }

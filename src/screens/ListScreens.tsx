@@ -1,11 +1,14 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { api, Message, Workspace } from '../api';
+import { api, Message, Workspace, saveLastWorkspace } from '../api';
 import { RootStack } from '../navigation';
-import { colors, time } from '../ui';
+import { time, useTheme } from '../ui';
+import { ThemeColors } from '../theme';
 
 function Row({ label, title, body, onPress }: { label: string; title: string; body: string; onPress: () => void }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={styles.row}>
       <Text style={styles.label}>{label}</Text>
@@ -19,14 +22,19 @@ export function WorkspacesScreen({
   navigation,
   onSignOut,
 }: NativeStackScreenProps<RootStack, 'Workspaces'> & { onSignOut: () => void }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api<Workspace[]>('/workspaces')
-      .then((data) => {
+      .then(async (data) => {
         setWorkspaces(data);
-        if (data.length === 1) navigation.replace('Home', { slug: data[0].slug });
+        if (data.length === 1) {
+          await saveLastWorkspace(data[0].slug);
+          navigation.replace('Home', { slug: data[0].slug });
+        }
       })
       .catch((e) => setError(e.message));
   }, [navigation]);
@@ -41,7 +49,14 @@ export function WorkspacesScreen({
         data={workspaces ?? []}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
-          <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Home', { slug: item.slug })} style={styles.row}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={async () => {
+              await saveLastWorkspace(item.slug);
+              navigation.navigate('Home', { slug: item.slug });
+            }}
+            style={styles.row}
+          >
             <Text style={styles.title}>{item.name}</Text>
           </Pressable>
         )}
@@ -61,6 +76,8 @@ interface ActivityItem {
 }
 
 export function ActivityScreen({ navigation, route }: NativeStackScreenProps<RootStack, 'Activity'>) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { slug } = route.params;
   const [items, setItems] = useState<ActivityItem[] | null>(null);
 
@@ -95,6 +112,8 @@ export function ActivityScreen({ navigation, route }: NativeStackScreenProps<Roo
 }
 
 export function SearchScreen({ navigation, route }: NativeStackScreenProps<RootStack, 'Search'>) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { slug } = route.params;
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<(Message & { channel_label: string })[] | null>(null);
@@ -151,15 +170,16 @@ export function SearchScreen({ navigation, route }: NativeStackScreenProps<RootS
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { backgroundColor: '#fff', flex: 1 },
-  row: { borderBottomColor: colors.line, borderBottomWidth: 1, padding: 14 },
-  label: { color: colors.muted, fontSize: 12, marginBottom: 2 },
-  title: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  body: { color: colors.text, fontSize: 14, marginTop: 2 },
-  empty: { color: colors.muted, padding: 24, textAlign: 'center' },
-  error: { color: colors.danger, padding: 14 },
-  search: { backgroundColor: colors.soft, borderRadius: 10, color: colors.text, fontSize: 16, margin: 12, padding: 10 },
-  signOut: { alignItems: 'center', padding: 16 },
-  signOutText: { color: colors.danger, fontSize: 16 },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    screen: { backgroundColor: colors.dark, flex: 1 },
+    row: { borderBottomColor: colors.line, borderBottomWidth: 1, padding: 14 },
+    label: { color: colors.textSecondary, fontSize: 12, marginBottom: 2 },
+    title: { color: colors.text, fontSize: 16, fontWeight: '700' },
+    body: { color: colors.textSecondary, fontSize: 14, marginTop: 2 },
+    empty: { color: colors.muted, padding: 24, textAlign: 'center' },
+    error: { color: colors.danger, padding: 14 },
+    search: { backgroundColor: colors.inputBg, borderRadius: 10, color: colors.text, fontSize: 16, margin: 12, padding: 10 },
+    signOut: { alignItems: 'center', padding: 16 },
+    signOutText: { color: colors.danger, fontSize: 16 },
+  });

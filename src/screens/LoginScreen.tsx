@@ -1,20 +1,24 @@
-import { useEffect, useState } from 'react';
+import Ionicons from '@react-native-vector-icons/ionicons';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { ApiError, cleanServer, login, loginWithCode, sendLoginCode, Session, ssoExchange, ssoName } from '../api';
-import { openSso, SsoGrant } from '../sso';
-import { colors } from '../ui';
+import { ApiError, cleanServer, googleExchange, login, loginWithCode, sendLoginCode, Session, ssoExchange, ssoName } from '../api';
+import { openGoogle, openSso, SsoGrant } from '../sso';
+import { useTheme } from '../ui';
+import { ThemeColors } from '../theme';
 
 export default function LoginScreen({ onSignedIn }: { onSignedIn: (session: Session) => void }) {
-  const [server, setServer] = useState('http://192.168.1.10:5000');
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const [server, setServer] = useState('https://draft-easy-monitoring-disk.trycloudflare.com');
   const [email, setEmail] = useState('');
   const [mode, setMode] = useState<'email' | 'code' | 'password'>('email');
   const [password, setPassword] = useState('');
@@ -25,6 +29,7 @@ export default function LoginScreen({ onSignedIn }: { onSignedIn: (session: Sess
   const [error, setError] = useState<string | null>(null);
   const [provider, setProvider] = useState<string | null>(null);
   const [grant, setGrant] = useState<SsoGrant | null>(null);
+  const [googleGrant, setGoogleGrant] = useState<SsoGrant | null>(null);
 
   useEffect(() => {
     let current = true;
@@ -39,6 +44,27 @@ export default function LoginScreen({ onSignedIn }: { onSignedIn: (session: Sess
       clearTimeout(timer);
     };
   }, [server]);
+
+  const signInWithGoogle = async () => {
+    setBusy(true);
+    setError(null);
+    let next: SsoGrant | null = null;
+    try {
+      console.log('Starting Google Sign-In with server:', cleanServer(server));
+      next = await openGoogle(cleanServer(server));
+      console.log('Google Sign-In result:', next);
+      if (next) onSignedIn(await googleExchange(server, next.code, next.verifier));
+      else setBusy(false);
+    } catch (e) {
+      console.error('Google Sign-In error:', e);
+      if ((e as ApiError).twoFactorRequired) {
+        setGoogleGrant(next);
+        setNeedsCode(true);
+      }
+      setError((e as Error).message);
+      setBusy(false);
+    }
+  };
 
   const signInWithSso = async () => {
     setBusy(true);
@@ -62,7 +88,8 @@ export default function LoginScreen({ onSignedIn }: { onSignedIn: (session: Sess
     setBusy(true);
     setError(null);
     try {
-      if (grant) onSignedIn(await ssoExchange(server, grant.code, grant.verifier, code));
+      if (googleGrant) onSignedIn(await googleExchange(server, googleGrant.code, googleGrant.verifier, code));
+      else if (grant) onSignedIn(await ssoExchange(server, grant.code, grant.verifier, code));
       else if (mode === 'email') {
         await sendLoginCode(server, email);
         setMode('code');
@@ -86,7 +113,7 @@ export default function LoginScreen({ onSignedIn }: { onSignedIn: (session: Sess
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.screen}>
+    <KeyboardAvoidingView behavior="padding" style={styles.screen}>
       <View style={styles.card}>
         <Text style={styles.title}>Ping Chat</Text>
 
@@ -169,9 +196,18 @@ export default function LoginScreen({ onSignedIn }: { onSignedIn: (session: Sess
           </Pressable>
         )}
 
-        {provider && !grant && (
+        {provider && !grant && !googleGrant && (
           <Pressable accessibilityRole="button" disabled={busy} onPress={signInWithSso} style={styles.ssoButton}>
             <Text style={styles.ssoText}>Sign in with {provider}</Text>
+          </Pressable>
+        )}
+
+        {!grant && !googleGrant && (
+          <Pressable accessibilityRole="button" disabled={busy} onPress={signInWithGoogle} style={styles.googleButton}>
+            <View style={styles.googleIconWrapper}>
+              <Text style={styles.googleIcon}>G</Text>
+            </View>
+            <Text style={styles.googleText}>Sign in with Google</Text>
           </Pressable>
         )}
       </View>
@@ -179,18 +215,51 @@ export default function LoginScreen({ onSignedIn }: { onSignedIn: (session: Sess
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.dark, flex: 1, justifyContent: 'center', padding: 20 },
-  card: { backgroundColor: '#fff', borderRadius: 14, padding: 20 },
-  title: { color: colors.dark, fontSize: 26, fontWeight: '800', marginBottom: 12 },
-  label: { color: colors.muted, fontSize: 13, marginBottom: 4, marginTop: 10 },
-  input: { borderColor: colors.line, borderRadius: 8, borderWidth: 1, color: colors.text, fontSize: 16, padding: 10 },
-  error: { color: colors.danger, marginTop: 10 },
-  hint: { color: colors.muted, fontSize: 14, marginTop: 12 },
-  link: { alignItems: 'center', marginTop: 12, padding: 6 },
-  linkText: { color: colors.brand, fontSize: 14, fontWeight: '600' },
-  button: { alignItems: 'center', backgroundColor: colors.brand, borderRadius: 8, marginTop: 16, padding: 13 },
-  ssoButton: { alignItems: 'center', borderColor: colors.line, borderRadius: 8, borderWidth: 1, marginTop: 10, padding: 12 },
-  ssoText: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    screen: { backgroundColor: colors.sidebar, flex: 1, justifyContent: 'center', padding: 20 },
+    card: { backgroundColor: colors.dark, borderRadius: 14, padding: 20 },
+    title: { color: colors.text, fontSize: 26, fontWeight: '800', marginBottom: 12 },
+    label: { color: colors.textSecondary, fontSize: 13, marginBottom: 4, marginTop: 10 },
+    input: {
+      backgroundColor: colors.inputBg,
+      borderColor: colors.line,
+      borderRadius: 8,
+      borderWidth: 1,
+      color: colors.text,
+      fontSize: 16,
+      padding: 10,
+    },
+    error: { color: colors.danger, marginTop: 10 },
+    hint: { color: colors.textSecondary, fontSize: 14, marginTop: 12 },
+    link: { alignItems: 'center', marginTop: 12, padding: 6 },
+    linkText: { color: colors.accent, fontSize: 14, fontWeight: '600' },
+    button: { alignItems: 'center', backgroundColor: colors.brand, borderRadius: 8, marginTop: 16, padding: 13 },
+    ssoButton: { alignItems: 'center', borderColor: colors.line, borderRadius: 8, borderWidth: 1, marginTop: 10, padding: 12 },
+    ssoText: { color: colors.text, fontSize: 15, fontWeight: '700' },
+    buttonText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+    googleButton: {
+      alignItems: 'center',
+      backgroundColor: '#ffffff',
+      borderColor: '#dadce0',
+      borderRadius: 8,
+      borderWidth: 1,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginTop: 10,
+      padding: 12,
+      gap: 10,
+    },
+    googleIconWrapper: {
+      width: 20,
+      height: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    googleIcon: {
+      color: '#4285F4',
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    googleText: { color: '#3c4043', fontSize: 15, fontWeight: '600' },
+  });

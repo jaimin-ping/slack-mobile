@@ -191,16 +191,75 @@ export async function ssoExchange(server: string, code: string, verifier: string
   return remember(clean, data);
 }
 
+/** Check if Google Sign-In is enabled on the server */
+export async function googleEnabled(server: string): Promise<boolean> {
+  try {
+    const data = await send<{ enabled: boolean }>(cleanServer(server), null, '/google/enabled', 'GET');
+    return data.enabled;
+  } catch {
+    return false;
+  }
+}
+
+/** Exchange Google OAuth code for session token */
+export async function googleExchange(server: string, code: string, verifier: string, twoFactorCode?: string): Promise<Session> {
+  const clean = cleanServer(server);
+  const data = await send<{ token: string; user: User }>(clean, null, '/google/exchange', 'POST', {
+    code,
+    verifier,
+    two_factor_code: twoFactorCode || undefined,
+    device_name: `Ping Chat ${Platform.OS}`,
+  });
+
+  return remember(clean, data);
+}
+
 export async function logout(): Promise<void> {
   await api('/logout', 'POST').catch(() => {});
   session = null;
   await store.clear();
+  await clearLastWorkspace();
+}
+
+const LAST_WORKSPACE_KEY = 'ping-chat-last-workspace';
+
+export async function saveLastWorkspace(slug: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    localStorage.setItem(LAST_WORKSPACE_KEY, slug);
+  } else {
+    await SecureStore.setItemAsync(LAST_WORKSPACE_KEY, slug);
+  }
+}
+
+export async function getLastWorkspace(): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    return localStorage.getItem(LAST_WORKSPACE_KEY);
+  }
+  return SecureStore.getItemAsync(LAST_WORKSPACE_KEY);
+}
+
+export async function clearLastWorkspace(): Promise<void> {
+  if (Platform.OS === 'web') {
+    localStorage.removeItem(LAST_WORKSPACE_KEY);
+  } else {
+    await SecureStore.deleteItemAsync(LAST_WORKSPACE_KEY);
+  }
 }
 
 /** Files and photos need the sign-in token; the web app's paths work under the API prefix. */
 export function fileSource(path: string) {
+  const baseUrl = `${session?.server}/api/v1${path}`;
+
+  // On web, headers don't work with Image component, so use token in URL
+  if (Platform.OS === 'web') {
+    const separator = path.includes('?') ? '&' : '?';
+    return {
+      uri: `${baseUrl}${separator}token=${session?.token}`,
+    };
+  }
+
   return {
-    uri: `${session?.server}/api/v1${path}`,
+    uri: baseUrl,
     headers: { Authorization: `Bearer ${session?.token}` },
   };
 }

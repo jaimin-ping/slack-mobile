@@ -1,11 +1,13 @@
+import Ionicons, { IoniconsIconName } from '@react-native-vector-icons/ionicons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api, Channel, getSession, Message, User, Workspace } from '../api';
 import { RootStack } from '../navigation';
 import { listen } from '../realtime';
-import { Avatar, colors } from '../ui';
+import { Avatar, useTheme } from '../ui';
+import { ThemeColors } from '../theme';
 import { Extras, setWorkspaceData } from '../workspaceData';
 
 interface Bootstrap {
@@ -18,10 +20,14 @@ interface Bootstrap {
 export default function HomeScreen({ navigation, route }: NativeStackScreenProps<RootStack, 'Home'>) {
   const { slug } = route.params;
   const me = getSession()?.user;
+  const { colors } = useTheme();
   const [data, setData] = useState<Bootstrap | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const stops = useRef(new Map<number, () => void>());
+
+  // Create dynamic styles based on theme
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const load = useCallback(async () => {
     try {
@@ -54,7 +60,7 @@ export default function HomeScreen({ navigation, route }: NativeStackScreenProps
         </View>
       ),
     });
-  }, [navigation, data?.workspace.name, slug]);
+  }, [navigation, data?.workspace.name, slug, styles]);
 
   // Unread numbers rise live for every conversation.
   useEffect(() => {
@@ -86,19 +92,41 @@ export default function HomeScreen({ navigation, route }: NativeStackScreenProps
     };
   }, []);
 
-  const open = (channel: Channel, title: string) =>
-    navigation.navigate('Chat', { slug, channelId: channel.id, title });
+  const open = (channel: Channel, title: string, dmUser?: User) =>
+    navigation.navigate('Chat', {
+      slug,
+      channelId: channel.id,
+      title,
+      channelType: channel.type,
+      dmUser: dmUser ? {
+        id: dmUser.id,
+        name: dmUser.name,
+        avatar_url: dmUser.avatar_url,
+        status_emoji: dmUser.status_emoji,
+      } : undefined,
+    });
 
   const openPerson = async (person: User) => {
     const existing = data?.channels.find((c) => c.dm_user_id === person.id);
 
     if (existing) {
-      open(existing, person.name);
+      open(existing, person.name, person);
       return;
     }
 
     const { channel_id } = await api<{ channel_id: number }>(`/w/${slug}/dm/${person.id}`, 'POST');
-    navigation.navigate('Chat', { slug, channelId: channel_id, title: person.name });
+    navigation.navigate('Chat', {
+      slug,
+      channelId: channel_id,
+      title: person.name,
+      channelType: 'dm',
+      dmUser: {
+        id: person.id,
+        name: person.name,
+        avatar_url: person.avatar_url,
+        status_emoji: person.status_emoji,
+      },
+    });
   };
 
   const named = data?.channels.filter((c) => c.type !== 'dm') ?? [];
@@ -129,22 +157,46 @@ export default function HomeScreen({ navigation, route }: NativeStackScreenProps
       {error && <Text style={styles.error}>{error}</Text>}
 
       <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Threads', { slug })}>
-        <Text style={styles.shortcut}>💬  Threads</Text>
+        <View style={styles.shortcutRow}>
+          <Ionicons name="chatbubbles-outline" size={18} color={colors.textSecondary} />
+          <Text style={styles.shortcut}>Threads</Text>
+        </View>
       </Pressable>
       <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Drafts', { slug })}>
-        <Text style={styles.shortcut}>✏️  Drafts</Text>
+        <View style={styles.shortcutRow}>
+          <Ionicons name="create-outline" size={18} color={colors.textSecondary} />
+          <Text style={styles.shortcut}>Drafts</Text>
+        </View>
       </Pressable>
       <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Scheduled', { slug })}>
-        <Text style={styles.shortcut}>🕒  Scheduled</Text>
+        <View style={styles.shortcutRow}>
+          <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
+          <Text style={styles.shortcut}>Scheduled</Text>
+        </View>
       </Pressable>
       <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Saved', { slug })}>
-        <Text style={styles.shortcut}>🔖  Saved items</Text>
+        <View style={styles.shortcutRow}>
+          <Ionicons name="bookmark-outline" size={18} color={colors.textSecondary} />
+          <Text style={styles.shortcut}>Saved items</Text>
+        </View>
       </Pressable>
       <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Files', { slug })}>
-        <Text style={styles.shortcut}>📁  Files</Text>
+        <View style={styles.shortcutRow}>
+          <Ionicons name="folder-outline" size={18} color={colors.textSecondary} />
+          <Text style={styles.shortcut}>Files</Text>
+        </View>
       </Pressable>
       <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Profile')}>
-        <Text style={styles.shortcut}>👤  Profile</Text>
+        <View style={styles.shortcutRow}>
+          <Ionicons name="person-outline" size={18} color={colors.textSecondary} />
+          <Text style={styles.shortcut}>Profile</Text>
+        </View>
+      </Pressable>
+      <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Preferences')}>
+        <View style={styles.shortcutRow}>
+          <Ionicons name="settings-outline" size={18} color={colors.textSecondary} />
+          <Text style={styles.shortcut}>Preferences</Text>
+        </View>
       </Pressable>
 
       {data?.extras.sections.map((section) => (
@@ -158,10 +210,16 @@ export default function HomeScreen({ navigation, route }: NativeStackScreenProps
       {named.filter((c) => !c.section_id).map(channelRow)}
 
       <Pressable accessibilityRole="button" onPress={() => navigation.navigate('NewChannel', { slug })}>
-        <Text style={styles.shortcut}>＋  Add channel</Text>
+        <View style={styles.shortcutRow}>
+          <Ionicons name="add" size={18} color={colors.textSecondary} />
+          <Text style={styles.shortcut}>Add channel</Text>
+        </View>
       </Pressable>
       <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Browse', { slug })}>
-        <Text style={styles.shortcut}>🔍  Browse channels</Text>
+        <View style={styles.shortcutRow}>
+          <Ionicons name="search-outline" size={18} color={colors.textSecondary} />
+          <Text style={styles.shortcut}>Browse channels</Text>
+        </View>
       </Pressable>
 
       <Text style={styles.section}>Direct messages</Text>
@@ -182,17 +240,18 @@ export default function HomeScreen({ navigation, route }: NativeStackScreenProps
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   screen: { backgroundColor: colors.dark, flex: 1 },
   headerActions: { flexDirection: 'row', gap: 14 },
-  headerLink: { color: '#fff', fontSize: 15 },
-  section: { color: '#99f6e4', fontSize: 13, fontWeight: '700', paddingHorizontal: 16, paddingTop: 18, paddingBottom: 6 },
+  headerLink: { color: colors.textBright, fontSize: 15 },
+  section: { color: colors.accent, fontSize: 13, fontWeight: '700', paddingHorizontal: 16, paddingTop: 18, paddingBottom: 6 },
   row: { alignItems: 'center', flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 10 },
-  icon: { color: '#ccfbf1', fontSize: 15, textAlign: 'center', width: 26 },
-  name: { color: '#ccfbf1', flex: 1, fontSize: 16 },
-  unreadName: { color: '#fff', fontWeight: '700' },
+  icon: { color: colors.text, fontSize: 15, textAlign: 'center', width: 26 },
+  name: { color: colors.text, flex: 1, fontSize: 16 },
+  unreadName: { color: colors.textBright, fontWeight: '700' },
   muted: { opacity: 0.5 },
-  badge: { backgroundColor: colors.accent, borderRadius: 10, color: '#0f172a', fontSize: 12, fontWeight: '700', overflow: 'hidden', paddingHorizontal: 7, paddingVertical: 1 },
-  error: { color: '#fecdd3', padding: 16 },
-  shortcut: { color: '#ccfbf1', fontSize: 15, paddingHorizontal: 16, paddingVertical: 9 },
+  badge: { backgroundColor: colors.danger, borderRadius: 10, color: colors.textBright, fontSize: 12, fontWeight: '700', overflow: 'hidden', paddingHorizontal: 7, paddingVertical: 1 },
+  error: { color: colors.danger, padding: 16 },
+  shortcutRow: { alignItems: 'center', flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingVertical: 9 },
+  shortcut: { color: colors.text, fontSize: 15 },
 });
